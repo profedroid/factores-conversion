@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Generador de factores de conversión</title>
+<style>
+:root{
+  --bg:#f6f8fb;--card:#fff;--ink:#172033;--muted:#697386;--line:#dfe5ee;
+  --primary:#3056d3;--primary-dark:#2344ad;--soft:#eef3ff;
+  --good:#176b3a;--good-bg:#e8f7ee;--bad:#9d1c1c;--bad-bg:#fdecec;
+  --warn:#8a5a00;--warn-bg:#fff5da;--shadow:0 8px 24px rgba(31,45,61,.07)
+}
+*{box-sizing:border-box}
+body{
+  margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  color:var(--ink);background:radial-gradient(circle at 15% 0%,#eaf0ff 0,transparent 25rem),var(--bg)
+}
+button,input{font:inherit}
+main{max-width:1120px;margin:0 auto;padding:5px 14px 32px}
+.title-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 5px}
+h1{font-size:clamp(1.2rem,2vw,1.55rem);line-height:1.05;letter-spacing:-.025em;margin:0;font-weight:800}
+.btn{
+  border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:11px;
+  padding:9px 13px;cursor:pointer;font-weight:750;transition:.15s ease
+}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(31,45,61,.08)}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.primary:hover{background:var(--primary-dark)}
+.panel{
+  background:var(--card);border:1px solid var(--line);border-radius:16px;
+  box-shadow:var(--shadow);padding:13px;margin-top:6px
+}
+.level-tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:9px}
+.level-btn{
+  border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 11px;
+  font-weight:800;cursor:pointer;color:#3a465a
+}
+.level-btn.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.exercise{
+  background:linear-gradient(135deg,#fbfcff,#f5f7ff);border:1px solid #dfe6fb;
+  border-radius:14px;padding:14px
+}
+.exercise-label{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;font-weight:900;color:var(--primary)}
+.question{font-size:clamp(1.75rem,3.4vw,2.8rem);font-weight:400;letter-spacing:-.035em;margin:5px 0 5px;line-height:1.12}
+.convert-label{display:block;font-weight:400;margin-bottom:.16em}
+.convert-expression{display:block;font-weight:850}
+.question strong{font-weight:850}
+.convert-arrow{display:inline-block;width:4ch;text-align:center;font-weight:400;letter-spacing:0}
+.microcopy{color:var(--muted);line-height:1.35;font-size:.9rem}
+.answer-row{display:grid;grid-template-columns:minmax(0,0.75fr) auto 92px auto;gap:8px;margin-top:10px;justify-content:start;align-items:stretch}
+.input-wrap{display:flex;align-items:stretch;border:1px solid #cfd7e5;border-radius:12px;overflow:hidden;background:#fff}
+.input-wrap:focus-within{outline:3px solid rgba(48,86,211,.13);border-color:#8ea5ef}
+#answer{border:0;outline:0;padding:11px 12px;min-width:0;flex:1;font-size:clamp(1.75rem,3.4vw,2.8rem);font-weight:700;background:transparent}
+#answer::placeholder{color:#9aa5b5;opacity:1;font-weight:500}
+.target-unit{
+  display:flex;align-items:center;padding:4px 12px;border-left:1px solid var(--line);
+  font-weight:850;background:#f7f9fc;white-space:nowrap
+}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+.feedback{display:none;margin-top:9px;padding:11px 13px;border-radius:11px;font-weight:750;line-height:1.4}
+.feedback.good{display:block;background:var(--good-bg);color:var(--good);border:1px solid #b7e4c7}
+.feedback.bad{display:block;background:var(--bad-bg);color:var(--bad);border:1px solid #f2b8b8}
+.feedback.warn{display:block;background:var(--warn-bg);color:var(--warn);border:1px solid #f0d28c}
+.hint,.solution{display:none;margin-top:11px;border-top:1px dashed var(--line);padding-top:12px}
+.hint.show,.solution.show{display:block}
+.hint-box{background:#fff8e8;border:1px solid #f1d795;border-radius:11px;padding:11px 12px;line-height:1.5}
+.hint-frac{display:inline-grid;grid-template-rows:1.2em auto;vertical-align:middle;text-align:center;min-width:80px;margin-left:.25em}
+.hint-frac .blank{border-bottom:1.6px solid currentColor;min-height:1.2em}
+.hint-frac .den{padding-top:.12em;font-weight:800}
+
+.solution h3{margin:0 0 8px}
+.step{display:grid;grid-template-columns:31px 1fr;gap:9px;margin:9px 0;align-items:start}
+.step-num{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--soft);color:var(--primary);font-weight:900}
+.math{font-family:"Cambria Math","STIX Two Math",Georgia,serif;font-size:1.06rem;line-height:1.75;overflow-wrap:anywhere}
+.fraction{
+  display:inline-grid;grid-template-rows:auto auto;vertical-align:middle;text-align:center;
+  line-height:1.12;margin:0 .22em;min-width:1.3em
+}
+.fraction .top{border-bottom:1.6px solid currentColor;padding:0 .28em .12em}
+.fraction .bottom{padding:.10em .28em 0}
+sup{font-size:.68em;vertical-align:super}
+.cancel-unit{position:relative;display:inline-block;text-decoration:none}
+.cancel-unit::after{
+  content:"";position:absolute;left:-8%;right:-8%;top:50%;height:2px;
+  background:#c62828;transform:rotate(-24deg);transform-origin:center;
+  border-radius:2px;pointer-events:none
+}
+.tiny{font-size:.81rem;color:var(--muted);line-height:1.35;margin-top:5px}
+.stats{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center}
+.stats h2{margin:0 0 7px;font-size:1.02rem}
+.stats-lines{font-size:1.16rem;line-height:1.55;color:var(--ink)}
+.stats-lines b{color:var(--ink);font-size:1.16rem;font-weight:850}
+.percentage{
+  text-align:center;min-width:205px;padding:12px 15px;border-radius:12px;
+  border:1px solid transparent;transition:.15s ease
+}
+.percentage.low{background:var(--bad-bg);color:var(--bad);border-color:#f2b8b8}
+.percentage.high{background:var(--good-bg);color:var(--good);border-color:#b7e4c7}
+.percentage-value{font-size:1.16rem;font-weight:850;line-height:1.3}
+.percentage-label{font-size:1.16rem;font-weight:850;margin-top:2px;color:inherit}
+.secondary{margin-top:12px}
+.secondary h2{margin:0 0 6px;font-size:1.05rem}
+.example{display:none;margin-top:9px;background:#f7f9fc;border:1px solid var(--line);padding:12px;border-radius:11px}
+.example.show{display:block}
+footer{margin-top:20px;color:var(--muted);font-size:.82rem;text-align:center}
+dialog{
+  border:0;padding:0;border-radius:14px;
+  max-width:min(1180px,98vw);width:auto;
+  max-height:96vh;box-shadow:0 24px 80px rgba(0,0,0,.25);
+  overflow:hidden;background:#fff
+}
+dialog::backdrop{background:rgba(20,27,45,.52);backdrop-filter:blur(2px)}
+.stairs-only{padding:6px;display:flex;align-items:center;justify-content:center}
+.stairs-only img{
+  display:block;max-width:calc(98vw - 12px);max-height:calc(96vh - 12px);
+  width:auto;height:auto;object-fit:contain;border-radius:8px
+}
+@media(max-width:700px){
+  main{padding:4px 8px 28px}
+  .title-row{align-items:flex-start}
+  h1{font-size:1.18rem}
+  .question{font-size:1.72rem}
+  #answer{font-size:1.72rem}
+  .title-row>.btn{padding:7px 9px}
+  .panel{padding:9px;border-radius:14px}
+  .exercise{padding:11px}
+  .level-tabs{gap:5px}
+  .level-btn{padding:7px 9px;font-size:.88rem}
+  .answer-row{grid-template-columns:1fr 1fr}
+  .input-wrap{grid-column:1 / -1}
+  .button-spacer{display:none}
+  .answer-row>.btn{width:100%}
+  .actions .btn{flex:1 1 130px}
+  .stats{grid-template-columns:1fr auto}
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="title-row">
+    <h1>Generador de factores de conversión</h1>
+    <button class="btn" id="openRef">Escalera de prefijos</button>
+  </div>
+
+  <section class="panel">
+    <div class="level-tabs" role="tablist" aria-label="Nivel de práctica">
+      <button class="level-btn active" data-level="1">1 · Básico</button>
+      <button class="level-btn" data-level="2">2 · Fracciones</button>
+      <button class="level-btn" data-level="3">3 · Cuadrado/cubo</button>
+      <button class="level-btn" data-level="4">4 · Varias unidades</button>
+    </div>
+
+    <div class="exercise">
+      <div class="question" id="question">Cargando ejercicio…</div>
+      <div class="answer-row">
+        <div class="input-wrap">
+          <input id="answer" inputmode="decimal" autocomplete="off" placeholder="Escribe el número" aria-label="Tu resultado">
+          <div class="target-unit" id="targetUnit">m</div>
+        </div>
+        <button class="btn primary" id="checkBtn">Comprobar</button>
+        <div class="button-spacer" aria-hidden="true"></div>
+        <button class="btn" id="newBtn">↻ Otro ejercicio</button>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="hintBtn">Dame una pista</button>
+        <button class="btn" id="solutionBtn">Ver solución</button>
+      </div>
+
+      <div id="feedback" class="feedback" role="status" aria-live="polite"></div>
+      <div id="hint" class="hint"></div>
+      <div id="solution" class="solution"></div>
+    </div>
+  </section>
+
+  <section class="panel stats">
+    <div>
+      <h2>Tu práctica de hoy</h2>
+      <div class="stats-lines">
+        <div>Aciertos al primer intento: <b id="hitsCount">0</b></div>
+        <div>Aciertos totales: <b id="correctCount">0</b></div>
+        <div>Fallos: <b id="failCount">0</b></div>
+        <div>Intentos totales: <b id="workedCount">0</b></div>
+      </div>
+    </div>
+    <div class="percentage low" id="percentageBox">
+      <div class="percentage-value" id="successPercent">0%</div>
+      <div class="percentage-label">porcentaje de aciertos</div>
+    </div>
+  </section>
+
+  <section class="secondary">
+    <button class="btn" id="exampleBtn">Ver un ejemplo resuelto</button>
+    <div class="example" id="example">
+      <div class="math">
+        72
+        <span class="fraction">
+          <span class="top"><span class="cancel-unit">km</span></span>
+          <span class="bottom"><span class="cancel-unit">h</span></span>
+        </span>
+        ·
+        <span class="fraction">
+          <span class="top">10<sup>3</sup> m</span>
+          <span class="bottom">1 <span class="cancel-unit">km</span></span>
+        </span>
+        ·
+        <span class="fraction">
+          <span class="top">1 <span class="cancel-unit">h</span></span>
+          <span class="bottom">60 <span class="cancel-unit">min</span></span>
+        </span>
+        ·
+        <span class="fraction">
+          <span class="top">1 <span class="cancel-unit">min</span></span>
+          <span class="bottom">60 s</span>
+        </span>
+        =
+        20
+        <span class="fraction"><span class="top">m</span><span class="bottom">s</span></span>
+      </div>
+    </div>
+  </section>
+
+  <footer>El contador se reinicia al recargar la página.</footer>
+</main>
+
+<dialog id="refDialog" aria-label="Escalera de prefijos">
+  <div class="stairs-only">
+    <img src="imagenes/escalera_prefijos.jpg" alt="Escalera de prefijos">
+  </div>
+</dialog>
+
+<script>
+(() => {
+"use strict";
+
+const prefixes=[
+  {s:"p",e:-12},{s:"n",e:-9},{s:"μ",e:-6},{s:"m",e:-3},{s:"c",e:-2},{s:"d",e:-1},
+  {s:"",e:0},{s:"da",e:1},{s:"h",e:2},{s:"k",e:3},{s:"M",e:6},{s:"G",e:9},{s:"T",e:12}
+];
+const extremeSymbols=new Set(["p","n","μ","M","G","T"]);
+const bases=[
+  {base:"m"},{base:"g"},{base:"s"},{base:"L"},{base:"A"},{base:"N"}
+];
+
+let level=1,current=null,firstTryHits=0,worked=0,totalAttempts=0,correctAttempts=0;
+const $=id=>document.getElementById(id);
+const question=$("question"),answer=$("answer"),targetUnit=$("targetUnit");
+const feedback=$("feedback"),hint=$("hint"),solution=$("solution");
+const hitsCount=$("hitsCount"),correctCount=$("correctCount"),failCount=$("failCount"),workedCount=$("workedCount"),successPercent=$("successPercent"),percentageBox=$("percentageBox");
+
+const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const pick=arr=>arr[rand(0,arr.length-1)];
+const chance=p=>Math.random()<p;
+
+function roundSig(x,sig=7){
+  if(x===0)return 0;
+  const p=Math.floor(Math.log10(Math.abs(x)));
+  const f=Math.pow(10,sig-1-p);
+  return Math.round(x*f)/f;
+}
+
+function trimZeros(s){
+  if(!s.includes("."))return s;
+  return s.replace(/0+$/,"").replace(/\.$/,"");
+}
+
+/* Convierte siempre a decimal normal, sin notación científica.
+   Ejemplo: 0.000046 -> 0,000046. */
+function decimalStringNoSci(x,sig=7){
+  if(!Number.isFinite(x))return "";
+  if(x===0)return "0";
+
+  const sign=x<0?"-":"";
+  const ax=Math.abs(x);
+  const rounded=roundSig(ax,sig);
+
+  // Número de decimales necesarios para conservar las cifras significativas
+  // sin perder valores pequeños por redondeo visual.
+  const p=Math.floor(Math.log10(rounded));
+  const decimals=Math.max(0,Math.min(24,sig-1-p));
+  let s=rounded.toFixed(decimals);
+  s=trimZeros(s);
+
+  // Salvaguarda adicional: si por límites numéricos apareciera 0, reconstruimos
+  // la forma decimal a partir de la exponencial interna, pero sin mostrar "e".
+  if(Number(s)===0 && ax>0){
+    const expForm=ax.toExponential(sig-1);
+    const parts=expForm.split("e");
+    const coef=parts[0];
+    const exp=parseInt(parts[1],10);
+    const digits=coef.replace(".","").replace(/0+$/,"") || "0";
+
+    if(exp<0){
+      s="0."+("0".repeat(Math.max(0,-exp-1)))+digits;
+    }else{
+      const integerPlaces=exp+1;
+      if(digits.length<=integerPlaces){
+        s=digits+("0".repeat(integerPlaces-digits.length));
+      }else{
+        s=digits.slice(0,integerPlaces)+"."+digits.slice(integerPlaces);
+      }
+    }
+    s=trimZeros(s);
+  }
+
+  return sign+s;
+}
+
+function fmt(x,sig=7){
+  return decimalStringNoSci(x,sig).replace(".",",");
+}
+
+function digitCountFormatted(x){
+  return (decimalStringNoSci(x,7).match(/\d/g)||[]).length;
+}
+
+function displayable(x){
+  if(!Number.isFinite(x)||x<=0)return false;
+  const s=decimalStringNoSci(x,7);
+  return s!=="0" && !/[eE]/.test(s) && digitCountFormatted(x)<=7;
+}
+
+function fraction(top,bottom){
+  return `<span class="fraction"><span class="top">${top}</span><span class="bottom">${bottom}</span></span>`;
+}
+
+function tenHTML(n){
+  if(n===0)return "1";
+  if(n===1)return "10";
+  return `10<sup>${n}</sup>`;
+}
+
+function parseInput(raw){
+  const cleaned=raw.trim().replace(/\s/g,"").replace(",",".");
+  if(!cleaned||!/^[-+]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(cleaned))return NaN;
+  return Number(cleaned);
+}
+
+function accepted(user,correct){
+  const rounded=roundSig(correct,7);
+  return Math.abs(user-rounded)<=Math.max(1e-12,Math.abs(rounded)*0.0000055);
+}
+
+function metricTerm(base,prefix,exp=1){
+  return {base:base.base,prefix,exp};
+}
+function termScale(t){return Math.pow(10,t.prefix.e*t.exp)}
+function termHTML(t){return `${t.prefix.s}${t.base}${t.exp>1?`<sup>${t.exp}</sup>`:""}`}
+function cancelled(html){return `<span class="cancel-unit">${html}</span>`}
+function cancelledTermHTML(t){return cancelled(termHTML(t))}
+
+function productHTML(terms,cancelAll=false){
+  return terms.map(t=>cancelAll?cancelledTermHTML(t):termHTML(t)).join(" · ")||"1";
+}
+
+/* Todas las unidades compuestas se muestran con barra horizontal. */
+function compoundHTML(num,den,cancelAll=false){
+  const top=productHTML(num,cancelAll);
+  if(!den.length)return top;
+  return fraction(top,productHTML(den,cancelAll));
+}
+
+function compoundScale(num,den){
+  return num.reduce((a,t)=>a*termScale(t),1)/den.reduce((a,t)=>a*termScale(t),1);
+}
+
+function randomDisplayable(){
+  for(let i=0;i<5000;i++){
+    let v;
+    const mode=rand(0,6);
+    if(mode===0)v=rand(10,9999999);
+    else if(mode===1)v=rand(100,999999)/10;
+    else if(mode===2)v=rand(100,999999)/100;
+    else if(mode===3)v=rand(100,999999)/1000;
+    else if(mode===4)v=rand(10,99999)/10000;
+    else if(mode===5)v=rand(10,9999)/100000;
+    else v=rand(10,999)/1000000;
+    if(v!==0&&displayable(v))return v;
+  }
+  return 23;
+}
+
+function valueForRatio(ratio){
+  for(let i=0;i<20000;i++){
+    const target=randomDisplayable();
+    const source=target/ratio;
+    if(displayable(source)&&displayable(target))return source;
+  }
+  for(let i=0;i<20000;i++){
+    const source=randomDisplayable();
+    const target=source*ratio;
+    if(displayable(source)&&displayable(target))return source;
+  }
+  return null;
+}
+
+function pickUniquePrefixes(count){
+  const copy=[...prefixes],out=[];
+  while(out.length<count&&copy.length){
+    out.push(copy.splice(rand(0,copy.length-1),1)[0]);
+  }
+  return out;
+}
+
+function targetPrefixesDifferentFrom(src,maxGap=9){
+  for(let k=0;k<5000;k++){
+    const tgt=pickUniquePrefixes(src.length);
+    if(tgt.every((p,i)=>p.s!==src[i].s && Math.abs(p.e-src[i].e)<=maxGap))return tgt;
+  }
+  return null;
+}
+
+function factorForTerm(source,target,position){
+  const s=termScale(source),t=termScale(target);
+  const src=termHTML(source),tgt=termHTML(target);
+  const csrc=cancelled(src);
+
+  if(position==="num"){
+    if(s>=t){
+      return {
+        top:`${fmt(s/t,7)} ${tgt}`, bottom:`1 ${src}`,
+        topCancelled:`${fmt(s/t,7)} ${tgt}`, bottomCancelled:`1 ${csrc}`
+      };
+    }
+    return {
+      top:`1 ${tgt}`, bottom:`${fmt(t/s,7)} ${src}`,
+      topCancelled:`1 ${tgt}`, bottomCancelled:`${fmt(t/s,7)} ${csrc}`
+    };
+  }
+
+  if(s>=t){
+    return {
+      top:`1 ${src}`, bottom:`${fmt(s/t,7)} ${tgt}`,
+      topCancelled:`1 ${csrc}`, bottomCancelled:`${fmt(s/t,7)} ${tgt}`
+    };
+  }
+  return {
+    top:`${fmt(t/s,7)} ${src}`, bottom:`1 ${tgt}`,
+    topCancelled:`${fmt(t/s,7)} ${csrc}`, bottomCancelled:`1 ${tgt}`
+  };
+}
+
+
+function firstFactorDenominatorHint(){
+  if(!current)return "";
+
+  if(current.kind==="simple"){
+    // La unidad inicial está en el numerador, así que debe ir abajo para cancelarse.
+    return termHTML(current.from);
+  }
+
+  if(current.kind==="fraction"){
+    // El primer factor corresponde a la unidad del numerador.
+    return termHTML(current.srcNum[0]);
+  }
+
+  if(current.kind==="power"){
+    // Se muestra la unidad base inicial, sin números. El exponente se conserva.
+    return termHTML(current.from);
+  }
+
+  // Nivel 4: el primer factor corresponde a la primera unidad del numerador.
+  return termHTML(current.srcNum[0]);
+}
+
+function hintFraction(denominatorHTML){
+  return `<span class="hint-frac"><span class="blank">&nbsp;</span><span class="den">${denominatorHTML}</span></span>`;
+}
+
+function simpleFactorPower10(from,to){
+  const d=from.prefix.e-to.prefix.e;
+  const fromBase=`${from.prefix.s}${from.base}`;
+  const toBase=`${to.prefix.s}${to.base}`;
+  if(d>0)return {d,equality:`1 ${fromBase} = ${tenHTML(d)} ${toBase}`,top:`${tenHTML(d)} ${toBase}`,bottom:`1 ${fromBase}`};
+  return {d,equality:`1 ${toBase} = ${tenHTML(-d)} ${fromBase}`,top:`1 ${toBase}`,bottom:`${tenHTML(-d)} ${fromBase}`};
+}
+
+function generateLevel1(){
+  for(let i=0;i<30000;i++){
+    const base=pick(bases),fromP=pick(prefixes),toP=pick(prefixes.filter(p=>p.s!==fromP.s&&Math.abs(p.e-fromP.e)<=9));
+    const from=metricTerm(base,fromP),to=metricTerm(base,toP);
+    const ratio=termScale(from)/termScale(to);
+    const value=valueForRatio(ratio);
+    if(value===null)continue;
+    const result=value*ratio;
+    if(displayable(value)&&displayable(result))return {kind:"simple",value,result,from,to,attempts:0,counted:false,solutionSeen:false,solved:false};
+  }
+}
+
+function generateLevel2(){
+  for(let i=0;i<50000;i++){
+    const bs=[...bases].sort(()=>Math.random()-.5).slice(0,2);
+    const sp=pickUniquePrefixes(2),tp=targetPrefixesDifferentFrom(sp,9);
+    if(!tp)continue;
+    const srcNum=[metricTerm(bs[0],sp[0])],srcDen=[metricTerm(bs[1],sp[1])];
+    const tgtNum=[metricTerm(bs[0],tp[0])],tgtDen=[metricTerm(bs[1],tp[1])];
+    const ratio=compoundScale(srcNum,srcDen)/compoundScale(tgtNum,tgtDen);
+    const value=valueForRatio(ratio);
+    if(value===null)continue;
+    const result=value*ratio;
+    if(displayable(value)&&displayable(result))return {kind:"fraction",value,result,srcNum,srcDen,tgtNum,tgtDen,attempts:0,counted:false,solutionSeen:false,solved:false};
+  }
+}
+
+function chooseLevel3Pair(exp){
+  const wantLarge=chance(.60);
+  let candidates=[];
+  for(const a of prefixes){
+    for(const b of prefixes){
+      if(a.s===b.s)continue;
+      const diff=Math.abs(a.e-b.e);
+
+      /* Para respetar 7 dígitos en dato y resultado:
+         - salto grande: cuadrados y diferencia 6 -> factor 10^12.
+         - cubos: diferencias moderadas, como máximo 3 -> factor 10^9.
+      */
+      if(wantLarge){
+        if(exp===2&&diff===6)candidates.push([a,b]);
+      }else{
+        if(diff<=3)candidates.push([a,b]);
+      }
+    }
+  }
+  if(!candidates.length)return null;
+  const extreme=candidates.filter(([a,b])=>extremeSymbols.has(a.s)||extremeSymbols.has(b.s));
+  if(extreme.length&&chance(.8))return pick(extreme);
+  return pick(candidates);
+}
+
+function generateLevel3(){
+  for(let i=0;i<50000;i++){
+    const wantLarge=chance(.60);
+    const exp=wantLarge?2:pick([2,3]);
+    let pair=null;
+
+    if(wantLarge){
+      const candidates=[];
+      for(const a of prefixes)for(const b of prefixes){
+        if(a.s!==b.s&&Math.abs(a.e-b.e)===6)candidates.push([a,b]);
+      }
+      const extreme=candidates.filter(([a,b])=>extremeSymbols.has(a.s)||extremeSymbols.has(b.s));
+      pair=pick(extreme.length&&chance(.8)?extreme:candidates);
+    }else{
+      pair=chooseLevel3Pair(exp);
+    }
+    if(!pair)continue;
+
+    const [fromP,toP]=pair;
+    const base=pick(bases.filter(b=>["m","g","s","L"].includes(b.base)));
+    const from=metricTerm(base,fromP,exp),to=metricTerm(base,toP,exp);
+    const ratio=termScale(from)/termScale(to);
+    const value=valueForRatio(ratio);
+    if(value===null)continue;
+    const result=value*ratio;
+
+    if(displayable(value)&&displayable(result))return {kind:"power",value,result,from,to,exp,attempts:0,counted:false,solutionSeen:false,solved:false};
+  }
+}
+
+function generateLevel4(){
+  for(let i=0;i<70000;i++){
+    const numCount=pick([2,2,3]),denCount=pick([1,1,2]),total=numCount+denCount;
+    if(total>bases.length)continue;
+    const bs=[...bases].sort(()=>Math.random()-.5).slice(0,total);
+    const sp=pickUniquePrefixes(total),tp=targetPrefixesDifferentFrom(sp,9);
+    if(!tp)continue;
+    const exps=Array.from({length:total},()=>chance(.22)?pick([2,3]):1);
+    const src=bs.map((b,j)=>metricTerm(b,sp[j],exps[j]));
+    const tgt=bs.map((b,j)=>metricTerm(b,tp[j],exps[j]));
+    const srcNum=src.slice(0,numCount),srcDen=src.slice(numCount);
+    const tgtNum=tgt.slice(0,numCount),tgtDen=tgt.slice(numCount);
+    const ratio=compoundScale(srcNum,srcDen)/compoundScale(tgtNum,tgtDen);
+    const value=valueForRatio(ratio);
+    if(value===null)continue;
+    const result=value*ratio;
+    if(displayable(value)&&displayable(result))return {kind:"multi",value,result,srcNum,srcDen,tgtNum,tgtDen,attempts:0,counted:false,solutionSeen:false,solved:false};
+  }
+}
+
+function clearPanels(){
+  feedback.className="feedback";feedback.textContent="";
+  hint.className="hint";hint.innerHTML="";
+  solution.className="solution";solution.innerHTML="";
+  answer.value="";
+}
+
+function newExercise(){
+  clearPanels();
+  current=level===1?generateLevel1():level===2?generateLevel2():level===3?generateLevel3():generateLevel4();
+
+  if(current && typeof current.solved==="undefined") current.solved=false;
+
+  if(!current){
+    feedback.className="feedback warn";
+    feedback.textContent="No se ha podido generar un ejercicio válido. Pulsa «Otro ejercicio».";
+    return;
+  }
+
+  if(current.kind==="simple"){
+    question.innerHTML=`<span class="convert-label">Convierte:</span><span class="convert-expression">${fmt(current.value,7)} ${termHTML(current.from)}<span class="convert-arrow">⟶</span>${termHTML(current.to)}</span>`;
+    targetUnit.innerHTML=termHTML(current.to);
+  }else if(current.kind==="fraction"){
+    question.innerHTML=`<span class="convert-label">Convierte:</span><span class="convert-expression">${fmt(current.value,7)} ${compoundHTML(current.srcNum,current.srcDen)}<span class="convert-arrow">⟶</span>${compoundHTML(current.tgtNum,current.tgtDen)}</span>`;
+    targetUnit.innerHTML=compoundHTML(current.tgtNum,current.tgtDen);
+  }else if(current.kind==="power"){
+    question.innerHTML=`<span class="convert-label">Convierte:</span><span class="convert-expression">${fmt(current.value,7)} ${termHTML(current.from)}<span class="convert-arrow">⟶</span>${termHTML(current.to)}</span>`;
+    targetUnit.innerHTML=termHTML(current.to);
+  }else{
+    question.innerHTML=`<span class="convert-label">Convierte:</span><span class="convert-expression">${fmt(current.value,7)} ${compoundHTML(current.srcNum,current.srcDen)}<span class="convert-arrow">⟶</span>${compoundHTML(current.tgtNum,current.tgtDen)}</span>`;
+    targetUnit.innerHTML=compoundHTML(current.tgtNum,current.tgtDen);
+  }
+  answer.focus();
+}
+
+function updateScore(){
+  const failures=totalAttempts-correctAttempts;
+  hitsCount.textContent=String(firstTryHits);
+  correctCount.textContent=String(correctAttempts);
+  failCount.textContent=String(failures);
+  workedCount.textContent=String(totalAttempts);
+  const pct=totalAttempts===0?0:Math.round((correctAttempts/totalAttempts)*100);
+  successPercent.textContent=`${pct}%`;
+  percentageBox.classList.toggle("low",pct<50);
+  percentageBox.classList.toggle("high",pct>=50);
+}
+
+function check(){
+  const user=parseInput(answer.value);
+  if(!Number.isFinite(user)){
+    feedback.className="feedback warn";
+    feedback.textContent="Escribe un número válido usando formato decimal normal.";
+    return;
+  }
+
+  if(current.solved){
+    feedback.className="feedback good";
+    feedback.innerHTML=`😊 <b>Este ejercicio ya está correcto.</b> Pulsa «Otro ejercicio» para continuar.`;
+    return;
+  }
+
+  current.attempts++;
+  totalAttempts++;
+
+  const ok=accepted(user,current.result);
+
+  if(!current.counted){
+    current.counted=true;
+    worked++;
+  }
+
+  if(ok){
+    const countsAsCorrect=!current.solutionSeen;
+    if(countsAsCorrect) correctAttempts++;
+
+    current.solved=true;
+    if(current.attempts===1 && !current.solutionSeen) firstTryHits++;
+
+    feedback.className="feedback good";
+    feedback.innerHTML=countsAsCorrect
+      ? `😊 <b>¡Correcto!</b> El resultado es ${fmt(current.result,7)} ${targetUnit.innerHTML}.`
+      : `😊 <b>¡Correcto!</b> El resultado es ${fmt(current.result,7)} ${targetUnit.innerHTML}. Como habías visto la solución, este acierto no cuenta en tus estadísticas.`;
+  }else{
+    feedback.className="feedback bad";
+    feedback.innerHTML=`😟 <b>No es correcto.</b> Revisa la colocación de los factores y las unidades que deben cancelarse.`;
+  }
+
+  updateScore();
+}
+
+function showHint(){
+  if(hint.classList.contains("show")){
+    hint.className="hint";
+    return;
+  }
+  const den=firstFactorDenominatorHint();
+
+  let initial="";
+  if(current.kind==="simple" || current.kind==="power"){
+    initial=`${fmt(current.value,7)} ${termHTML(current.from)}`;
+  }else{
+    initial=`${fmt(current.value,7)} ${compoundHTML(current.srcNum,current.srcDen)}`;
+  }
+
+  hint.innerHTML=`<div class="hint-box"><b>Pista:</b><div class="math" style="margin-top:6px">${initial} · ${hintFraction(den)}</div></div>`;
+  hint.className="hint show";
+}
+
+function solutionSimple(){
+  const f=factorForTerm(current.from,current.to,"num");
+  const initial=`${fmt(current.value,7)} ${termHTML(current.from)}`;
+  const withFactor=`${initial} · ${fraction(f.top,f.bottom)}`;
+  const cancelledExpr=`${fmt(current.value,7)} ${cancelledTermHTML(current.from)} · ${fraction(f.topCancelled,f.bottomCancelled)}`;
+
+  return `<h3>Solución paso a paso</h3>
+  <div class="step"><div class="step-num">1</div><div><b>Partimos del valor y la unidad inicial:</b><div class="math">${initial}</div></div></div>
+  <div class="step"><div class="step-num">2</div><div><b>Añadimos el factor de conversión:</b><div class="math">${withFactor}</div></div></div>
+  <div class="step"><div class="step-num">3</div><div><b>Simplificamos las unidades iguales:</b><div class="math">${cancelledExpr}</div></div></div>
+  <div class="step"><div class="step-num">4</div><div><b>Resultado:</b><div class="math"><b>${fmt(current.result,7)} ${termHTML(current.to)}</b></div></div></div>`;
+}
+
+function solutionFraction(){
+  const f1=factorForTerm(current.srcNum[0],current.tgtNum[0],"num");
+  const f2=factorForTerm(current.srcDen[0],current.tgtDen[0],"den");
+
+  const initial=`${fmt(current.value,7)} ${compoundHTML(current.srcNum,current.srcDen)}`;
+  const step2=`${initial} · ${fraction(f1.top,f1.bottom)}`;
+  const step3=`${initial} · ${fraction(f1.top,f1.bottom)} · ${fraction(f2.top,f2.bottom)}`;
+  const cancelledInitial=`${fmt(current.value,7)} ${compoundHTML(current.srcNum,current.srcDen,true)}`;
+  const cancelledExpr=`${cancelledInitial} · ${fraction(f1.topCancelled,f1.bottomCancelled)} · ${fraction(f2.topCancelled,f2.bottomCancelled)}`;
+
+  return `<h3>Solución paso a paso</h3>
+  <div class="step"><div class="step-num">1</div><div><b>Partimos del valor y las unidades iniciales:</b><div class="math">${initial}</div></div></div>
+  <div class="step"><div class="step-num">2</div><div><b>Añadimos el factor para la unidad del numerador:</b><div class="math">${step2}</div></div></div>
+  <div class="step"><div class="step-num">3</div><div><b>Añadimos también el factor para la unidad del denominador:</b><div class="math">${step3}</div></div></div>
+  <div class="step"><div class="step-num">4</div><div><b>Simplificamos las unidades:</b><div class="math">${cancelledExpr}</div></div></div>
+  <div class="step"><div class="step-num">5</div><div><b>Resultado:</b><div class="math"><b>${fmt(current.result,7)} ${compoundHTML(current.tgtNum,current.tgtDen)}</b></div></div></div>`;
+}
+
+function powerPiece(n,exp){
+  if(n==="1")return `1<sup>${exp}</sup>`;
+  return `(${n})<sup>${exp}</sup>`;
+}
+
+function solutionPower(){
+  const f=simpleFactorPower10(current.from,current.to);
+  const fromBase=`${current.from.prefix.s}${current.from.base}`;
+  const toBase=`${current.to.prefix.s}${current.to.base}`;
+  const initial=`${fmt(current.value,7)} ${termHTML(current.from)}`;
+
+  let numericTop,numericBottom;
+  if(f.d>0){numericTop=tenHTML(f.d);numericBottom="1"}
+  else{numericTop="1";numericBottom=tenHTML(-f.d)}
+
+  const expandedTop=`${powerPiece(numericTop,current.exp)} · ${toBase}<sup>${current.exp}</sup>`;
+  const expandedBottom=`${powerPiece(numericBottom,current.exp)} · ${fromBase}<sup>${current.exp}</sup>`;
+  const expandedBottomCancelled=`${powerPiece(numericBottom,current.exp)} · ${cancelled(`${fromBase}<sup>${current.exp}</sup>`)}`;
+
+  const step2=`${initial} · (${fraction(f.top,f.bottom)})<sup>${current.exp}</sup>`;
+  const step3=`${initial} · ${fraction(`(${f.top})<sup>${current.exp}</sup>`,`(${f.bottom})<sup>${current.exp}</sup>`)}`;
+  const step4=`${initial} · ${fraction(expandedTop,expandedBottom)}`;
+  const step5=`${fmt(current.value,7)} ${cancelledTermHTML(current.from)} · ${fraction(expandedTop,expandedBottomCancelled)}`;
+
+  return `<h3>Solución paso a paso</h3>
+  <div class="step"><div class="step-num">1</div><div><b>Partimos del valor y la unidad inicial:</b><div class="math">${initial}</div></div></div>
+  <div class="step"><div class="step-num">2</div><div><b>Añadimos el factor completo elevado al exponente:</b><div class="math">${step2}</div></div></div>
+  <div class="step"><div class="step-num">3</div><div><b>Elevamos todo el numerador y todo el denominador:</b><div class="math">${step3}</div></div></div>
+  <div class="step"><div class="step-num">4</div><div><b>Aplicamos el exponente a cada parte, manteniendo las potencias de 10:</b><div class="math">${step4}</div></div></div>
+  <div class="step"><div class="step-num">5</div><div><b>Simplificamos las unidades:</b><div class="math">${step5}</div></div></div>
+  <div class="step"><div class="step-num">6</div><div><b>Resultado:</b><div class="math"><b>${fmt(current.result,7)} ${termHTML(current.to)}</b></div></div></div>`;
+}
+
+function solutionMulti(){
+  const fs=[];
+  current.srcNum.forEach((t,i)=>fs.push({label:termHTML(t),f:factorForTerm(t,current.tgtNum[i],"num")}));
+  current.srcDen.forEach((t,i)=>fs.push({label:termHTML(t),f:factorForTerm(t,current.tgtDen[i],"den")}));
+
+  const initial=`${fmt(current.value,7)} ${compoundHTML(current.srcNum,current.srcDen)}`;
+  const rows=[
+    `<div class="step"><div class="step-num">1</div><div><b>Partimos del valor y las unidades iniciales:</b><div class="math">${initial}</div></div></div>`
+  ];
+
+  const added=[];
+  fs.forEach((x,i)=>{
+    added.push(fraction(x.f.top,x.f.bottom));
+    rows.push(`<div class="step"><div class="step-num">${i+2}</div><div><b>Añadimos el factor para ${x.label}:</b><div class="math">${initial} · ${added.join(" · ")}</div></div></div>`);
+  });
+
+  const cancelledFactors=fs.map(x=>fraction(x.f.topCancelled,x.f.bottomCancelled)).join(" · ");
+  const cancelledInitial=`${fmt(current.value,7)} ${compoundHTML(current.srcNum,current.srcDen,true)}`;
+  rows.push(`<div class="step"><div class="step-num">${fs.length+2}</div><div><b>Simplificamos todas las unidades que se cancelan:</b><div class="math">${cancelledInitial} · ${cancelledFactors}</div></div></div>`);
+  rows.push(`<div class="step"><div class="step-num">${fs.length+3}</div><div><b>Resultado:</b><div class="math"><b>${fmt(current.result,7)} ${compoundHTML(current.tgtNum,current.tgtDen)}</b></div></div></div>`);
+
+  return `<h3>Solución paso a paso</h3>${rows.join("")}`;
+}
+
+function showSolution(){
+  if(solution.classList.contains("show")){
+    solution.className="solution";
+    return;
+  }
+  current.solutionSeen=true;
+  if(!current.counted){current.counted=true;worked++;updateScore()}
+  solution.innerHTML=current.kind==="simple"?solutionSimple():
+                     current.kind==="fraction"?solutionFraction():
+                     current.kind==="power"?solutionPower():
+                     solutionMulti();
+  solution.className="solution show";
+}
+
+document.querySelectorAll(".level-btn").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    document.querySelectorAll(".level-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    level=Number(btn.dataset.level);
+    newExercise();
+  });
+});
+$("checkBtn").addEventListener("click",check);
+$("hintBtn").addEventListener("click",showHint);
+$("newBtn").addEventListener("click",newExercise);
+$("solutionBtn").addEventListener("click",showSolution);
+answer.addEventListener("keydown",e=>{if(e.key==="Enter")check()});
+
+$("exampleBtn").addEventListener("click",()=>{
+  $("example").classList.toggle("show");
+  $("exampleBtn").textContent=$("example").classList.contains("show")?"Ocultar ejemplo":"Ver un ejemplo resuelto";
+});
+
+const dialog=$("refDialog");
+$("openRef").addEventListener("click",()=>{
+  if(dialog.open) dialog.close();
+  else dialog.showModal();
+});
+dialog.addEventListener("click",e=>{
+  const r=dialog.getBoundingClientRect();
+  if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();
+});
+
+newExercise();
+})();
+</script>
+</body>
+</html>
